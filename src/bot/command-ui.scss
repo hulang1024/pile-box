@@ -1,5 +1,5 @@
 #command-ui {
-  margin: 8px;
+  margin-left: 8px;
 
   .title {
     margin-bottom: 8px;
@@ -7,9 +7,14 @@
 
   select {
     padding: 4px;
+
+    &:disabled {
+      color: initial;
+    }
   }
 
   #ok {
+    margin-top: 8px;
     padding: 4px 16px;
     border-radius: 4px;
     background: #fff;

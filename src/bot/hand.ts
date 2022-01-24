@@ -27,15 +27,15 @@ export default class Hand extends Container {
     this.gotoGridY(gridRowNum - 1);
   }
 
-  public async gotoGridX(gridX: number) {
+  public async gotoGridX(gridX: number, displayGridX: number = null) {
     if (gridX == this.gridX) {
       return Promise.resolve();
     }
     const msec = cellMSec * Math.abs(this.gridX - gridX);
     this.gridX = gridX;
     this.setCssVar('duration', `${msec / 1000}s`);
-    this.x = 35 + gridCellWidth / 2 + this.gridX * gridCellWidth;
-    this.holdBox?.moveToX(gridX * gridCellWidth, msec);
+    this.x = 35 + gridCellWidth / 2 + (displayGridX ?? gridX) * gridCellWidth;
+    this.holdBox?.moveToX((displayGridX ?? gridX) * gridCellWidth, msec);
     await timeout(msec);
     if (this.holdBox) {
       this.bot.boxEnv.grid.clearBox(this.holdBox);
@@ -62,7 +62,6 @@ export default class Hand extends Container {
   }
 
   public grasp(box: Box) {
-    console.log(box ? `grasp ${box.id}` : 'ungrasp');
     this.holdBox = box;
     return timeout(50);
   }

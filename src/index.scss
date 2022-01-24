@@ -17,6 +17,8 @@ body {
 
 .main {
   display: flex;
+  justify-content: center;
+  padding-top: 16px;
 }
 
 #stage {
@@ -26,6 +28,7 @@ body {
   min-width: 600px;
   border: 1px solid #222;
   border-radius: 1px;
+  overflow: hidden;
 
   .floor {
     position: absolute;

@@ -61,6 +61,5 @@ function serve(cb) {
   doWatch(cb);
 }
 
-exports.js = javascript;
 exports.build = build;
 exports.serve = serve;
