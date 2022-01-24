@@ -1,6 +1,6 @@
 import Box from "../env/box";
 import BoxEnv from "../env/box-env";
-import { gridCellWidth, gridColNum, gridRowNum } from "../env/grid";
+import { gridColNum, gridRowNum } from "../env/grid";
 import CommandUI from "./command-ui";
 import Hand from "./hand";
 
@@ -21,12 +21,11 @@ export default class Bot {
    * @param dst 方块id或grid坐标
    * @return 0=完成，2=不能移动，因为目的地方块的宽度小于源方块的宽度
    */
-  public async putOn(srcBoxId: number, dst: number | { gridX: number, gridY: number }) {
+  public async putOn(srcBoxId: number, dst: number | { gridX: number, gridY: number }, level = 0) {
     const srcBox = this.boxEnv.boxes.get(srcBoxId);
     let dstBox, dstPos;
     if (typeof dst == 'number') {
       dstBox = this.boxEnv.boxes.get(dst);
-      dstPos = { gridX: dstBox.gridX, gridY: dstBox.gridY };
     } else {
       dstPos = dst as { gridX: number, gridY: number };
     }
@@ -35,21 +34,26 @@ export default class Bot {
       return 2;
     }
 
-    console.log(`put ${srcBoxId} on ${dstPos ? `(${dstPos.gridX}, ${dstPos.gridY})` : dstBox.id}`);
+    callLog(level, 'putOn',
+      srcBoxId,
+      dstBox ? dstBox.id : `(${dstPos.gridX}, ${dstPos.gridY})`);
 
-    await this.findSpace(srcBox.gridX, srcBox.gridY, srcBox.gridXCells, srcBox.gridXCells);
+    await this.findSpace(srcBox.gridX, srcBox.gridY, srcBox.gridXCells, srcBox.gridXCells, true, level + 1);
     const { gridX: dstSpaceGridX } = await this.findSpace(
-      dstPos.gridX, dstPos.gridY, dstBox ? dstBox.gridXCells : srcBox.gridXCells,
-      srcBox.gridXCells, false);
+      dstBox ? dstBox.gridX : dstPos.gridX,
+      dstBox ? dstBox.gridY : dstPos.gridY,
+      dstBox ? dstBox.gridXCells : srcBox.gridXCells,
+      srcBox.gridXCells, false, level + 1);
 
-    await this.grasp(srcBox);
+    await this.grasp(srcBox, level + 1);
 
-    let topY = this.findCanGoTopY(srcBox.gridX, dstSpaceGridX, dstPos.gridY - 1);
+    let topY = this.findCanGoTopY(srcBox.gridX, dstSpaceGridX,
+      (dstBox ? dstBox.gridY : dstPos.gridY) - 1);
     const { hand } = this;
     await hand.gotoGridY(topY - srcBox.gridYCells + 1);
     await hand.gotoGridX(dstSpaceGridX);
     await hand.gotoGridY(dstBox ? dstBox.gridY - srcBox.gridYCells : dstPos.gridY);
-    console.log(`ungrasp ${srcBox.id}`);
+    callLog(level + 1, 'ungrasp', srcBox.id);
     await hand.grasp(null);
     return 0;
   }
@@ -59,23 +63,23 @@ export default class Bot {
    * @param srcBoxId 
    * @param dstBoxId 
    */
-  public async putBelow(srcBoxId: number, dstBoxId: number) {
+  public async putBelow(srcBoxId: number, dstBoxId: number, level = 0) {
     const { boxEnv, boxEnv: { boxes } } = this;
     const dstBox = boxes.get(dstBoxId);
     const dstUnderBoxId = boxEnv.grid.cellAt(dstBox.gridX, dstBox.gridY + dstBox.gridYCells);
     if (dstUnderBoxId) {
-      await this.putOn(srcBoxId, dstUnderBoxId);
+      await this.putOn(srcBoxId, dstUnderBoxId, level + 1);
     } else {
       const srcBox = boxes.get(srcBoxId);
       const dstPos = {
         gridX: dstBox.gridX,
         gridY: (dstBox.gridY + dstBox.gridYCells - 1) - srcBox.gridYCells + 1
       };
-      await this.findSpace(dstBox.gridX, dstBox.gridY, dstBox.gridXCells, srcBox.gridXCells);
-      await this.getRidOf(dstBox);
-      await this.putOn(srcBoxId, dstPos);
+      await this.findSpace(dstBox.gridX, dstBox.gridY, dstBox.gridXCells, srcBox.gridXCells, true, level + 1);
+      await this.getRidOf(dstBox, level + 1);
+      await this.putOn(srcBoxId, dstPos, level + 1);
     }
-    return this.putOn(dstBoxId, srcBoxId);
+    return this.putOn(dstBoxId, srcBoxId, level + 1);
   }
 
   /**
@@ -84,23 +88,19 @@ export default class Bot {
    * @param gridY 
    * @param width 空间宽度
    */
-  private async findSpace(gridX: number, gridY: number, width: number, spaceWidth: number, wholeClear = true) {
-    console.log('findSpace', gridX, gridY);
-    let topY = gridY - 1;
+  private async findSpace(gridX: number, gridY: number,
+    width: number, spaceWidth: number, wholeClear: boolean, level: number) {
+    callLog(level, 'findSpace', gridX, gridY);
     if (wholeClear) {
-      let isClear = true;
-      while (!isClear) {
-        for (let x = gridX; isClear && x < gridX + width; x++) {
-          if (!this.boxEnv.grid.isEmpty(x, topY)) {
-            isClear = false;
-            await this.clearTop(x, topY, gridY);
-          }
-        }
-        if (!isClear) {
+      for (let x = gridX; x < gridX + width; x++) {
+        let topY = gridY;
+        while (!this.boxEnv.grid.isEmpty(x, topY - 1)) {
           topY--;
         }
+        await this.clearTop(x, topY, gridY, level + 1);
       }
     } else {
+      let topY = gridY - 1;
       let left = gridX;
       // 先找到第一个非空
       for (; left < gridX + width; left++) {
@@ -120,7 +120,11 @@ export default class Bot {
       }
       if ((end - left) < spaceWidth) {
         for (let x = gridX; x < gridX + spaceWidth; x++) {
-          await this.clearTop(x, topY, gridY);
+          let topY = gridY;
+          while (!this.boxEnv.grid.isEmpty(x, topY - 1)) {
+            topY--;
+          }
+          await this.clearTop(x, topY, gridY, level + 1);
         }
         return { gridX, gridY };
       } else {
@@ -132,27 +136,25 @@ export default class Bot {
   /**
    * 去抓取目标（前置条件：已清顶）
    */
-  private async grasp(target: Box) {
-    console.log(`grasp ${target.id}`);
+  private async grasp(target: Box, level: number) {
+    callLog(level, 'grasp', target.id);
     const { hand } = this;
     // 找到从抓手到源方块之间最高的障碍的y位置
     const canGoTopY = this.findCanGoTopY(hand.gridX, target.gridX, target.gridY);
 
     await hand.gotoGridY(canGoTopY);
-    await hand.gotoGridX(
-      target.gridX + target.gridXCells - 1,
-      target.gridX + target.gridXCells - gridCellWidth / 2);
+    await hand.gotoGridX(target.gridX, target.gridXCells / 2);
     await hand.gotoGridY(target.gridY);
     return hand.grasp(target);
   }
 
-  private async clearTop(x: number, topY: number, targetY: number) {
-    console.log('clearTop', x, topY, targetY);
-    while (topY < targetY) {
+  private async clearTop(x: number, topY: number, bottomY: number, level: number) {
+    callLog(level, 'clearTop', x, topY, bottomY);
+    while (topY < bottomY) {
       const cell = this.boxEnv.grid.cellAt(x, topY);
       if (cell) {
         const target = this.boxEnv.boxes.get(cell);
-        await this.getRidOf(target);
+        await this.getRidOf(target, level + 1);
       }
       topY++;
     }
@@ -181,15 +183,19 @@ export default class Bot {
     return canGoTopY;
   }
 
-  private async getRidOf(target: Box) {
-    console.log(`getRidOf ${target.id}`);
+  private async getRidOf(target: Box, level: number) {
+    callLog(level, 'getRidOf', target.id);
     // todo: 空白必须和target尺寸相同
-    for (let y = gridRowNum - target.gridYCells; y >= 0; y--) {
+    for (let y = gridRowNum - 1; y >= 0; y--) {
       for (let x = 0; x < gridColNum; x++) {
         if (this.boxEnv.grid.isEmpty(x, y)) {
-          return this.putOn(target.id, { gridX: x, gridY: y - target.gridYCells + 1 });
+          return this.putOn(target.id, { gridX: x, gridY: y - target.gridYCells + 1 }, level + 1);
         }
       }
     }
   }
+}
+
+function callLog(level: number, name: string, ...rest: any[]) {
+  console.log(`${''.padStart(level * 2)}${name}`, ...rest);
 }

@@ -27,21 +27,16 @@ export default class Hand extends Container {
     this.gotoGridY(gridRowNum - 1);
   }
 
-  public async gotoGridX(gridX: number, displayGridX: number = null) {
+  public async gotoGridX(gridX: number, displayOffset: number = 0.5) {
     if (gridX == this.gridX) {
       return Promise.resolve();
     }
     const msec = cellMSec * Math.abs(this.gridX - gridX);
     this.gridX = gridX;
     this.setCssVar('duration', `${msec / 1000}s`);
-    this.x = 35 + gridCellWidth / 2 + (displayGridX ?? gridX) * gridCellWidth;
-    this.holdBox?.moveToX((displayGridX ?? gridX) * gridCellWidth, msec);
-    await timeout(msec);
-    if (this.holdBox) {
-      this.bot.boxEnv.grid.clearBox(this.holdBox);
-      this.holdBox.gridX = gridX;
-      this.bot.boxEnv.grid.setBox(this.holdBox);
-    }
+    this.x = 35 + (gridX + displayOffset) * gridCellWidth;
+    this.holdBox?.moveToX(gridX * gridCellWidth, msec);
+    return timeout(msec);
   }
 
   public async gotoGridY(gridY: number) {
@@ -53,15 +48,17 @@ export default class Hand extends Container {
     this.setCssVar('duration', `${msec / 1000}s`);
     this.y = -(gridRowNum - gridY) * gridCellHeight;
     this.holdBox?.moveToY((gridY - 1) * gridCellHeight, msec);
-    await timeout(msec);
-    if (this.holdBox) {
-      this.bot.boxEnv.grid.clearBox(this.holdBox);
-      this.holdBox.gridY = gridY;
-      this.bot.boxEnv.grid.setBox(this.holdBox);
-    }
+    return timeout(msec);
   }
 
   public grasp(box: Box) {
+    if (box == null && this.holdBox) {
+      const { holdBox, bot: { boxEnv } } = this;
+      boxEnv.grid.clearBox(holdBox);
+      holdBox.gridX = this.gridX;
+      holdBox.gridY = this.gridY;
+      boxEnv.grid.setBox(holdBox);
+    }
     this.holdBox = box;
     return timeout(50);
   }
