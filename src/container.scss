@@ -1,0 +1,8 @@
+.container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  transform: translate(var(--x), var(--y));
+  width: var(--width);
+  height: var(--height);
+}

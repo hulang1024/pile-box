@@ -1,0 +1,15 @@
+.boxes {
+  left: 50%;
+  transform: translate(-50%, var(--y));
+  width: var(--floor-width);
+}
+
+.box {
+  font-size: 16px;
+  text-align: center;
+  line-height: var(--height);
+  border: 2px solid #333;
+  border-radius: 1px;
+  box-sizing: border-box;
+  transition: transform var(--duration) linear;
+}
