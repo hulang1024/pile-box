@@ -1,0 +1,16 @@
+.bot-hand {
+  transition: transform var(--duration) linear;
+
+  .arm {
+    margin: 0 auto;
+    height: 527.5px;
+    width: 9px;
+    background: #222;
+  }
+
+  .gripper {
+    width: 30px;
+    height: 12px;
+    background: #222;
+  }
+}

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <link rel="stylesheet" type="text/css" href="dist/index.css?v=<%= hash %>" /> 
+    <title>Pile box</title>
+  </head>
+
+  <body>
+    <div class="main">
+      <div id="stage">
+        <div class="floor">桌子</div>
+      </div>
+      <div id="command-ui">
+        <h3 class="title">命令</h3>
+        <div>
+          <span>将</span>
+          <select id="src-box-id" class="box-id-select">
+            <option disabled selected>请选择</option>
+          </select>
+          <span>放到</span>
+          <select id="dst-box-id" class="box-id-select">
+            <option disabled selected>请选择</option>
+          </select>
+          <span>的</span>
+          <select id="placement">
+            <option value="above">上面</option>
+            <option value="below">下面</option>
+          </select>
+          <button id="ok">发送</button>
+        </div>
+      </div>
+    </div>
+    <script src="dist/bundle.js?v=<%= hash %>"></script>
+  </body>
+</html>

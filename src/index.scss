@@ -1,0 +1,67 @@
+@import './bot/hand.scss';
+@import './bot/command-ui.scss';
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #eee;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  transform: translate(var(--x), var(--y));
+  width: var(--width);
+  height: var(--height);
+}
+
+.main {
+  display: flex;
+}
+
+#stage {
+  position: relative;
+  width: 600px;
+  height: 600px;
+  min-width: 600px;
+  border: 1px solid #222;
+  border-radius: 1px;
+
+  .boxes {
+    left: 50%;
+    transform: translate(-50%, var(--y));
+    width: var(--floor-width);
+  }
+
+  .box {
+    font-size: 16px;
+    text-align: center;
+    line-height: var(--height);
+    border: 2px solid #333;
+    border-radius: 1px;
+    box-sizing: border-box;
+  
+    transition: transform var(--duration) linear;
+  }
+
+  .floor {
+    position: absolute;
+    left: 50%;
+    bottom: 0px;
+    width: var(--floor-width);
+    height: 60px;
+    line-height: 60px;
+    transform: translateX(-50%);
+    background: #222;
+    border-radius: 1px;
+    color: #aaa;
+    text-align: center;
+  }
+}
